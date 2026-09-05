@@ -2,6 +2,18 @@
 
 A complete 13-step guide for configuring a local or server-based Dockerized Jenkins and SonarQube CI/CD pipeline with JaCoCo code coverage and automated quality gates.
 
+## 0. Add plugin to `pom.xml`
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.sonarsource.scanner.maven</groupId>
+            <artifactId>sonar-maven-plugin</artifactId>
+            <version>3.10.0.2594</version>
+        </plugin>
+    </plugins>
+</build>
+```
 ---
 
 ## 1. Environment Variables (`.env`)
@@ -191,6 +203,37 @@ In Jenkins (**Manage Jenkins > Plugins > Available Plugins**), install:
 - Pipeline Maven Integration
 - Git Plugin
 
+### Install the Standard Suite via Plugin Manager
+- Pipeline (installs the entire Pipeline aggregator suite)
+- Git
+- GitHub Branch Source
+- Pipeline: Stage View
+- Pipeline: Maven Integration
+- Timestamper
+- Workspace Cleanup Plugin
+- Matrix Authorization Strategy
+- PAM Authentication
+- Credentials Binding
+- Plain Credentials
+- SSH Build Agents
+- Click Install at the bottom of the page.
+- Check the box Restart Jenkins when installation is complete and no jobs are running.
+
+### Configure JDK 21 in Jenkins UI
+- Open Jenkins in your browser (http://localhost:8081).
+- In the left navigation menu, go to Manage Jenkins → Tools (under System Configuration).
+- Scroll down to the JDK installations section and click Add JDK.
+- Configure the fields as follows:
+
+  - Name: `JDK-21` (This must match jdk 'JDK-21' in your Jenkinsfile)
+  - Install automatically: Uncheck this checkbox.
+  - JAVA_HOME: `/opt/java/openjdk`
+  - apply
+
+```bash
+docker exec swiftkart-jenkins echo $JAVA_HOME
+```
+
 ---
 
 ## 11. Credentials Configuration
@@ -212,3 +255,64 @@ In Jenkins (**Manage Jenkins > System > SonarQube servers**):
 1. Create a new Pipeline job in Jenkins.
 2. Select **Pipeline script from SCM**, choose Git, and point to repository URL.
 3. Trigger **Build Now** to verify end-to-end automation.
+
+## Others
+### Create the Pipeline Item
+- Navigate to the Jenkins Dashboard (http://localhost:8081).
+- Click New Item in the left navigation sidebar.
+- Enter the item name: swiftkart-pipeline.
+- Select Pipeline as the project type.
+- Click OK at the bottom of the form.
+- Verification: You are redirected to the job configuration page showing tabs like General, Build Triggers, and Pipeline.
+
+### Configure SCM & Pipeline Script
+- Pipeline Tab
+- Scroll down to the Pipeline section at the bottom.
+- Set Definition to Pipeline script from SCM.
+- In the SCM dropdown, choose Git.
+- Fill in the repository details:
+- Repository URL: Provide your Git repo URL (e.g., your GitHub HTTPS/SSH URL or your local bare git repo path).
+- Credentials: Select your Git credentials if it is a private repository; leave as - none - if it is a public repository or a mounted local directory.
+- for private repo - github -> settings -> credentials -> personal access tokens (classic) -> Click Generate new token → Generate new token (classic).
+- Note: jenkins-git-access
+- Expiration: Select your desired window (e.g., 30, 90 days, or No expiration for local dev).
+- Scopes: Check the repo box (grants full control of private repositories).
+- Click Generate token at the bottom and copy the generated token immediately (it will look like ghp_...).
+
+- Branch Specifier: Change */master to */main (or whichever branch contains your code and Jenkinsfile).
+- Script Path: Verify this is set to Jenkinsfile (points to the file in your repository root).
+Click Save.
+- Verification: The screen displays the swiftkart-pipeline dashboard with a left sidebar including Build Now, Configure, and Pipeline Syntax.
+
+
+### Trigger & Verify the Build
+- Execution
+- Click Build Now in the left sidebar menu.
+- Under Build History on the bottom-left, click on #1 (the running build).
+- Click Console Output to observe the logs in real time.
+- Verification: The pipeline stages (Checkout → Build & Test → SonarQube Analysis → Quality Gate) run consecutively, ending with Finished: SUCCESS.
+
+
+## Jenkins should find a SonarQube server configuration named SonarServer
+#### Open Jenkins System Configuration
+- Navigate Settings
+  - In your browser, open Jenkins (http://localhost:8081).
+  - Click Manage Jenkins in the left sidebar.
+  - Click System (under the System Configuration section).
+
+- Verification: The System configuration page loads with global settings for various tools and plugins.
+
+#### Configure the SonarQube Server
+- Add Installation
+  - Scroll down until you find the SonarQube servers section.
+  - Check the box labeled Enable injection of SonarQube server configuration as environment variables.
+  - Click the Add SonarQube button.
+  - Fill in the fields exactly as follows:
+
+    - Name: SonarServer (Must match case-sensitively with your Jenkinsfile)
+    - Server URL: http://sonarqube:9000
+    - Server authentication token: Select your sonar-token credential from the dropdown.
+
+  - Click Apply, then scroll to the bottom and click Save.
+
+- Verification: After saving, navigate back to Manage Jenkins → System → SonarQube servers and confirm SonarServer is listed with the URL http://sonarqube:9000.
