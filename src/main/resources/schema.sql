@@ -1,0 +1,39 @@
+CREATE TABLE IF NOT EXISTS SPRING_AI_CHAT_MEMORY (
+    conversation_id VARCHAR(255) NOT NULL,
+    content         LONGVARCHAR NOT NULL,
+    type            VARCHAR(10) NOT NULL CHECK (type IN ('USER', 'ASSISTANT', 'SYSTEM', 'TOOL')),
+    timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    sequence_id     BIGINT NOT NULL
+);
+
+ALTER TABLE SPRING_AI_CHAT_MEMORY
+ALTER COLUMN conversation_id VARCHAR(255);
+
+CREATE INDEX IF NOT EXISTS SPRING_AI_CHAT_MEMORY_CONVERSATION_ID_TIMESTAMP_IDX
+ON SPRING_AI_CHAT_MEMORY(conversation_id, timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS SPRING_AI_CHAT_MEMORY_CONVERSATION_ID_SEQUENCE_ID_IDX
+ON SPRING_AI_CHAT_MEMORY(conversation_id, sequence_id);
+
+CREATE TABLE IF NOT EXISTS customers (
+    id    VARCHAR(50) PRIMARY KEY,
+    name  VARCHAR(255) NOT NULL,
+    city  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id                     VARCHAR(50) PRIMARY KEY,
+    customer_id            VARCHAR(50) NOT NULL,
+    product_name           VARCHAR(255) NOT NULL,
+    status                 VARCHAR(100) NOT NULL,
+    expected_delivery_date DATE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id       VARCHAR(50) PRIMARY KEY,
+    name     VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    price    DECIMAL(10, 2) NOT NULL,
+    stock    INTEGER NOT NULL
+);
