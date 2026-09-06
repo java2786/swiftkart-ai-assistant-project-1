@@ -436,9 +436,7 @@ Run:
 docker run -d \
   --name swiftkart-ai-assistant-test \
   -p 8080:8080 \
-  -e "SPRING_PROFILES_ACTIVE=openai" \
   --env-file .env \
-  --env-file .env.dev \
   swiftkart-ai-assistant:test
 
 ```

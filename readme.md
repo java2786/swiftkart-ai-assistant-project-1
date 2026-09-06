@@ -2,6 +2,7 @@
 
 
 > docker compose -f docker-compose-cicd.yml up -d
+> docker compose -f docker-compose-cicd.yml down
 
 > docker compose -f docker-compose-cicd.yml ps
 > docker compose -f docker-compose-cicd.yml logs -f sonarqube
@@ -25,6 +26,12 @@ docker build --no-cache -t swiftkart-ai-assistant:test .
 
 ## run container
 docker run -d \
+  --name swiftkart-ai-assistant-test \
+  -p 8080:8080 \
+  --env-file .env \
+  swiftkart-ai-assistant:test
+
+docker run \
   --name swiftkart-ai-assistant-test \
   -p 8080:8080 \
   --env-file .env \
