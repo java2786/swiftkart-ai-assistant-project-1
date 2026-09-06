@@ -287,7 +287,7 @@ Click **Create**.
 In Jenkins (**Manage Jenkins > System > SonarQube servers**):
 - Check **Enable injection of SonarQube server configuration**.
 - SonarQube installations
-- Name same as docker-compose and pipeline: `sonar-token`
+- Name same as pipeline: `SonarServer`
 - Server URL: `http://sonarqube:9000`
 - Server authentication token: Select `sonar token with jenkins`.
 
