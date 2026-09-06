@@ -1,6 +1,8 @@
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk21
+    build:
+      context: ./jenkins-docker
+      dockerfile: Dockerfile
     container_name: swiftkart-jenkins
     ports:
       - "${JENKINS_HOST_PORT}:8080"
@@ -41,4 +43,3 @@ networks:
 
 volumes:
   jenkins_home:
-  

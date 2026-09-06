@@ -44,3 +44,6 @@ data
 
 test.txt
 .DS_Store
+*.pem
+volume_data/
+**/.DS_Store

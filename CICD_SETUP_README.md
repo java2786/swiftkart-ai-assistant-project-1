@@ -168,7 +168,7 @@ Initialize containers using Docker Compose:
 docker compose -f docker-compose-cicd.yml up -d
 
 docker compose ps
-docker compose -f docker-compose-cicd.yml ps
+docker compose -f docker-compose-cicd.yml ps 
 docker compose -f docker-compose-cicd.yml logs -f sonarqube
 
 ```
@@ -201,21 +201,20 @@ docker compose -f docker-compose-cicd.yml logs -f sonarqube
 In Jenkins (**Manage Jenkins > Plugins > Available Plugins**), install:
 - SonarQube Scanner
 - Pipeline Maven Integration
-- Git Plugin
+- PAM Authentication
 
 ### Install the Standard Suite via Plugin Manager
-- Pipeline (installs the entire Pipeline aggregator suite)
-- Git
-- GitHub Branch Source
-- Pipeline: Stage View
-- Pipeline: Maven Integration
-- Timestamper
-- Workspace Cleanup Plugin
-- Matrix Authorization Strategy
-- PAM Authentication
-- Credentials Binding
-- Plain Credentials
-- SSH Build Agents
+  - Pipeline (installs the entire Pipeline aggregator suite)
+  - Git
+  - GitHub Branch Source
+  - Pipeline: Stage View
+  - Pipeline: Maven Integration
+  - Timestamper
+  - Workspace Cleanup Plugin
+  - Matrix Authorization Strategy
+  - Credentials Binding
+  - Plain Credentials
+  - SSH Build Agents
 - Click Install at the bottom of the page.
 - Check the box Restart Jenkins when installation is complete and no jobs are running.
 

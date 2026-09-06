@@ -1,0 +1,42 @@
+# services:
+#   chromadb:
+#     image: chromadb/chroma:latest
+#     container_name: swiftkart-chromadb
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - chroma_data:/chroma/chroma
+#     environment:
+#       - IS_PERSISTENT=TRUE
+#       - PERSIST_DIRECTORY=/chroma/chroma
+#       - ANONYMIZED_TELEMETRY=FALSE
+#     networks:
+#       - swiftkart-prod-net
+
+#   app:
+#     image: swiftkart-ai-assistant:test # Or your ECR URI in production
+#     container_name: swiftkart-ai-assistant
+#     restart: unless-stopped
+#     ports:
+#       - "8080:8080"
+#     depends_on:
+#       - chromadb
+#     environment:
+#       - SPRING_PROFILES_ACTIVE=prod
+#       - SPRING_AI_OPENAI_API_KEY=${OPENAI_API_KEY}
+#       # Notice we point to the container service name 'chromadb', not localhost
+#       - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST=http://chromadb
+#       - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT=8000
+#     volumes:
+#       - ./volume_data/app_data:/opt/swiftkart/data
+#     networks:
+#       - swiftkart-prod-net
+
+# volumes:
+#   chroma_data:
+#   app_data:
+
+# networks:
+#   swiftkart-prod-net:
+#     driver: bridge

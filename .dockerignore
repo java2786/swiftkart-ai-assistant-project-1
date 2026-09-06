@@ -4,6 +4,7 @@
 .env
 .env.dev
 .env.openai.dev
+.env.production
 .env.*
 !.env.example
 
@@ -14,8 +15,6 @@ target/
 
 *.log
 
-README.md
-
-
-http/
 .DS_Store
+*.pem
+volume_data/

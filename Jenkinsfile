@@ -39,4 +39,20 @@ pipeline {
             }
         }
     }
+    post {
+        success {
+            build job: 'swiftkart-deploy-ec2',
+                wait: false,
+                parameters: [
+                    string(
+                        name: 'BUILD_TAG_REF',
+                        value: "${env.BUILD_NUMBER}"
+                    )
+                ]
+        }
+
+        failure {
+            echo 'CI failed. Deployment will not start.'
+        }
+    }
 }
