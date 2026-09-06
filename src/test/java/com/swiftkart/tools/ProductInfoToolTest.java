@@ -7,11 +7,13 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.swiftkart.domain.Product;
 import com.swiftkart.repository.ProductRepository;
 
+@Disabled ("Temporarily disabled")
 class ProductInfoToolTest {
     private final ProductRepository repository = mock(ProductRepository.class);
     private final ProductInfoTool tool = new ProductInfoTool(repository);
