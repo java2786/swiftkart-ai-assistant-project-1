@@ -202,6 +202,7 @@ In Jenkins (**Manage Jenkins > Plugins > Available Plugins**), install:
 - SonarQube Scanner
 - Pipeline Maven Integration
 - PAM Authentication
+- AWS Credentials
 
 ### Install the Standard Suite via Plugin Manager
   - Pipeline (installs the entire Pipeline aggregator suite)

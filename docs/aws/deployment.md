@@ -1358,23 +1358,26 @@ Select:
 Pipeline
 ```
 
-Create a parameter:
+Create a parameter (String Parameter):
 
 ```text
-BUILD_TAG_REF
+Name: BUILD_TAG_REF
 ```
 
 Example:
 
 ```text
-15
+Value: [empty]
 ```
 
 This means:
 
 ```text
-Docker image:
-swiftkart-ai-assistant:15
+Docker image: swiftkart-ai-assistant:15
+```
+
+```text
+Description: Docker image tag to deploy. Passed from swiftkart-pipeline.
 ```
 
 Using build-specific tags is better than deploying only:
