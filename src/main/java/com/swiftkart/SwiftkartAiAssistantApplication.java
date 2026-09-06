@@ -30,32 +30,10 @@ public class SwiftkartAiAssistantApplication implements CommandLineRunner {
 		logger.info("Active Profile: {}", activeProfile);
 		logger.info("Demo Key: {}", environment.getProperty("demo.key"));
 
-		sonarTest();
 	}
 
 
 
-	public static void sonarTest() {
-        // 1. Critical Security Vulnerability: Hardcoded credentials (Rule: java:S1813 / java:S2068)
-        String dbPassword = "SuperSecretPassword123!";
-        String apiKey = "sk-proj-1234567890abcdef1234567890abcdef";
-
-        // 2. Blocker Bug: Guaranteed NullPointerException / Null dereference (Rule: java:S2259)
-        String value = null;
-        if (value.length() > 0) {
-            System.out.println(value);
-        }
-
-        // 3. Major Code Smell / Bug: Infinite recursion / dead loop (Rule: java:S2189)
-        while (true) {
-            int unusedCounter = 0;
-            break;
-        }
-
-        // 4. Critical Security Flaw: Using Math.random for security/tokens instead of SecureRandom (Rule: java:S2245)
-        double insecureToken = Math.random();
-        System.out.println(dbPassword + apiKey + insecureToken);
-    }
 }
 
 
