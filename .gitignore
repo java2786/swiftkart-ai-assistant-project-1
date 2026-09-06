@@ -41,3 +41,4 @@ build/
 mvnw.cmd
 data
 .DS_Store
+test.txt
