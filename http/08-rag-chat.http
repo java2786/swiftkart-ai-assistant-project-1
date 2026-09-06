@@ -1,0 +1,138 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+### ===== RAG CHAT ENDPOINTS =====
+### Endpoint: /api/rag/chat
+### Tests the RAG system with policy documents
+
+### Query 1: Electronics Return Policy - Direct Policy Match
+### Expected: Should find that trimmers have a 14-day return window
+### The response should cite the 14-day limit for electronics/trimmers
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q1",
+  "message": "Can Mahesh return a trimmer he bought 20 days ago? What's our return window for electronics?"
+}
+
+###
+
+### Query 2: Out-of-Scope Question - Graceful Handling
+### Expected: Should politely indicate that cryptocurrency is not a supported payment method
+### Should NOT hallucinate or make up payment methods
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q2",
+  "message": "Do you accept cryptocurrency payments like Bitcoin and Ethereum at SwiftKart?"
+}
+
+###
+
+### Query 3: Shipping Timeline
+### Expected: Should retrieve shipping policy and mention 3-5 business days for standard shipping
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q3",
+  "message": "How long does standard shipping take at SwiftKart?"
+}
+
+###
+
+### Query 4: Return Personal Care Items
+### Expected: Should mention that opened personal care items are non-returnable
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q4",
+  "message": "I opened a cosmetic product and now want to return it. Is this possible?"
+}
+
+###
+
+### Query 5: Refund Timeline
+### Expected: Should mention 5-7 business days for refunds
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q5",
+  "message": "How long does it take to receive a refund after SwiftKart approves my return?"
+}
+
+###
+
+### Query 6: Conversational Continuity with RAG
+### Expected: Should maintain conversation context and still use RAG for policy grounding
+### This tests that memory + RAG work together
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q1",
+  "message": "And what if it was a regular shirt instead? Would the return policy be different?"
+}
+
+###
+
+### Query 7: Express Shipping Details
+### Expected: Should mention express shipping (1-2 days) and metros where it's available
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q7",
+  "message": "What's the fastest shipping option available? Can I get it delivered tomorrow in Bangalore?"
+}
+
+###
+
+### Query 8: Delivery Partners
+### Expected: Should mention SwiftExpress and BlueDart as carrier partners
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q8",
+  "message": "Which courier companies does SwiftKart use for deliveries?"
+}
+
+###
+
+### Query 9: Order Cancellation
+### Expected: Should mention 4-hour cancellation window from order placement
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q9",
+  "message": "I just placed an order 2 hours ago. Can I still cancel it?"
+}
+
+###
+
+### Query 10: Support Hours
+### Expected: Should mention 24/7 support availability
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q10",
+  "message": "When can I contact customer support? I need help with my order right now."
+}

@@ -1,0 +1,76 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+### ===================================================================
+### STAGE 11 — AGENTIC ORCHESTRATION VERIFICATION
+### ===================================================================
+
+### Query 1: Compound Multi-Intent (Tool Calling + Policy RAG + Memory)
+### Expected:
+### 1. Calls OrderStatusTool for SK-1042 (status: DELAYED / OUT_FOR_DELIVERY)
+### 2. Retrieves shipping-policy.txt via ChromaDB to find delay compensation
+### 3. Synthesizes a unified response addressing status AND delay compensation
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q1",
+  "message": "I'm Liam Chen from Singapore. My order SK-1002 hasn't arrived yet. Can you check its status and tell me if it's covered under the delay policy?"
+}
+
+###
+
+### Query 2: Product Discovery + Return Policy Check
+### Expected:
+### 1. Calls ProductInfoTool to check stock and price of 'Beard Trimmer Pro'
+### 2. Retrieves return-policy.txt to verify if trimmers have a 14-day window
+### 3. Answers both purchase feasibility and return eligibility
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q2",
+  "message": "Is the Beard Trimmer Pro in stock, and what is its return window if I don't like it?"
+}
+
+###
+
+### Query 3: Graceful Degrade / Single-Step Policy Question
+### Expected: Verifies the agent doesn't hallucinate tools when only RAG is needed
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q3",
+  "message": "What is your standard cancellation policy if I cancel an order within 2 hours?"
+}
+
+###
+
+### Query 4: Conversational Continuity Under Agent Orchestration
+### Expected: Recalls the context of SK-1042 from Query 1 without re-specifying the order ID
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q1",
+  "message": "When was that order originally expected to be delivered?"
+}
+
+###
+
+### Query 5: Request Validation (Blank User ID)
+### Expected: HTTP 400 Bad Request
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "",
+  "conversationId": "{{conversationId}}-blank-user",
+  "message": "Can you check order SK-1042?"
+}

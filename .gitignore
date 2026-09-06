@@ -40,3 +40,4 @@ build/
 
 mvnw.cmd
 data
+.DS_Store

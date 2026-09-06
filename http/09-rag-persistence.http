@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+### ===================================================================
+### STANDARD CHAT ENDPOINT VERIFICATION
+### The application also exposes a non-RAG chat endpoint. These requests
+### verify that endpoint and its conversation memory independently from RAG.
+### ===================================================================
+
+### Query : Standard Chat — General Customer Support
+### Expected: A normal assistant response without policy retrieval augmentation.
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-q1",
+  "message": "Please greet me and tell me how you can help with my SwiftKart order."
+}
+
+###
+
+### Query 2: Standard Chat — Conversation Continuity
+### Expected: Uses the same standard-chat conversation history from Query 12.
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "conversationId": "{{conversationId}}-standard-chat",
+  "message": "What did I ask you about in my previous message?"
+}
+
+###
+
+### Query 3: Standard Chat — Generated Conversation ID
+### Expected: A successful response containing a generated conversationId.
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "message": "Give me a brief order-support greeting."
+}
+
+###
+
+### ===================================================================
+### REQUEST VALIDATION VERIFICATION
+### Both chat controllers reject a blank or missing userId with HTTP 400.
+### ===================================================================
+
+### Query 4: RAG Chat — Missing Required userId
+### Expected: HTTP 400 with 'userId must not be blank'.
+POST {{baseUrl}}/api/rag/chat
+Content-Type: application/json
+
+{
+  "conversationId": "{{conversationId}}-missing-user-rag",
+  "message": "What is the return policy?"
+}
+
+###
+
+### Query 5: Standard Chat — Blank Required userId
+### Expected: HTTP 400 with 'userId must not be blank'.
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "",
+  "conversationId": "{{conversationId}}-blank-user-standard",
+  "message": "Can you help me with an order?"
+}

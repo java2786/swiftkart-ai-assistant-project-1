@@ -1,0 +1,10 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+POST {{baseUrl}}/api/agent/chat
+content-Type: application/json
+
+{"userId":"cust-101","message":"How many days do I have to return an item?"}
+
+###

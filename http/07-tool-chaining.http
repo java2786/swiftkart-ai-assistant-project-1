@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+### Tool chaining: order status followed by delivery estimate
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "cust-101",
+  "conversationId": "tool-chain-demo",
+  "message": "What is the status of order SK-1001, and will it be delivered by tomorrow? Check the current order status and then retrieve its delivery estimate before answering."
+}
+
+###
+
+POST {{baseUrl}}/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "cust-102",
+  "conversationId": "tool-chain-demo",
+  "message": "What is the status of order SK-1002, and will it be delivered by tomorrow? Check the current order status and then retrieve its delivery estimate before answering."
+}
+

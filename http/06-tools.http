@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:8080
+@userId = customer-mahesh
+@conversationId = conv-return-policy
+
+# Order lookup
+POST {{baseUrl}}/api/agent/chat
+content-type: application/json
+
+{"userId":"cust-101","message":"Where is my order SK-1001?"}
+
+### 
+
+# Product stock check
+POST {{baseUrl}}/api/agent/chat
+content-type: application/json
+
+{"userId":"cust-101","message":"Do you have SwiftKart Air Pro Earbuds in stock?"}
+
+### 
+
+# Conversational flow using the returned conversationId
+POST {{baseUrl}}/api/agent/chat
+content-type: application/json
+
+{"userId": "user1", "conversationId": "conv-test-1", "message":"What is the expected delivery date, and what city is my account registered in?"}

@@ -1,0 +1,12 @@
+
+docker build -t swiftkart-ai-assistant:test .
+docker build --no-cache -t swiftkart-ai-assistant:test .
+
+
+docker run -d \
+  --name swiftkart-ai-assistant-test \
+  -p 8080:8080 \
+  --env-file .env \
+  swiftkart-ai-assistant:test
+
+
