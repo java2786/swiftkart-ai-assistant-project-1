@@ -21,20 +21,16 @@
 
 
 ## Create docker image
+```bash
 docker build -t swiftkart-ai-assistant:test .
 docker build --no-cache -t swiftkart-ai-assistant:test .
-
+```
 ## run container
+```bash
 docker run -d \
   --name swiftkart-ai-assistant-test \
   -p 8080:8080 \
   --env-file .env \
   swiftkart-ai-assistant:test
-
-docker run \
-  --name swiftkart-ai-assistant-test \
-  -p 8080:8080 \
-  --env-file .env \
-  swiftkart-ai-assistant:test
-
+```
 
