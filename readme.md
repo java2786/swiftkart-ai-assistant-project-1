@@ -52,3 +52,28 @@ docker logs swiftkart-sonarqube --tail 100
 docker logs swiftkart-postgres --tail 50
 ```
 
+```bash
+export AWS_REGION="ap-south-1"
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+    --query Account \
+    --output text)
+export ECR_REPO_NAME="swiftkart-ai-assistant"
+export SECRET_NAME="swiftkart/prod/env"
+export KEY_PAIR_NAME="swiftkart-key"
+export SEC_GROUP_NAME="swiftkart-app-sg"
+
+PUBLIC_IP=$(aws ec2 describe-instances \
+    --instance-ids ${INSTANCE_ID} \
+    --query "Reservations[0].Instances[0].PublicIpAddress" \
+    --output text)
+
+echo "EC2 IP: ${PUBLIC_IP}"
+
+echo $AWS_REGION
+echo $AWS_ACCOUNT_ID
+echo $ECR_REPO_NAME
+echo $SECRET_NAME
+
+
+
+```

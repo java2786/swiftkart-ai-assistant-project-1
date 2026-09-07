@@ -129,7 +129,7 @@ The most important rule is:
 
 ```text
 .env files containing secrets
-        |
+        | 
         X
         |
       GitHub
