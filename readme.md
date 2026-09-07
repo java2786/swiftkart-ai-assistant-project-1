@@ -74,6 +74,4 @@ echo $AWS_ACCOUNT_ID
 echo $ECR_REPO_NAME
 echo $SECRET_NAME
 
-
-
 ```

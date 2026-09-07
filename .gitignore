@@ -47,4 +47,10 @@ test.txt
 *.pem
 volume_data/
 src/.DS_Store
+src/main/.DS_Store
+**/.DS_Store
+kbd/
+
+# Mac macOS metadata files
+.DS_Store
 **/.DS_Store
