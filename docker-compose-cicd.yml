@@ -4,7 +4,9 @@ services:
       context: ./jenkins-docker
       dockerfile: Dockerfile
     container_name: swiftkart-jenkins
-    user: root
+    # user: root
+    group_add:
+      - "0"
     ports:
       - "${JENKINS_HOST_PORT}:8080"
       - "50000:50000"

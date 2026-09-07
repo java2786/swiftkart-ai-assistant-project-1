@@ -6,7 +6,7 @@ pipeline {
         string(
             name: 'BUILD_TAG_REF',
             defaultValue: 'latest',
-            description: 'Docker image tag to deploy'
+            description: 'Docker image tag to build and deploy'
         )
     }
 
@@ -33,30 +33,42 @@ pipeline {
     stages {
 
         /*
-         * The CD job needs the source code because it builds the Docker image.
+         * ============================================================
+         * 1. CHECKOUT SOURCE CODE
+         * ============================================================
          *
-         * Configure this Jenkins job with your Git repository under:
+         * This job is configured as "Pipeline script",
+         * NOT "Pipeline script from SCM".
          *
-         * Pipeline → Definition → Pipeline script from SCM
-         *
-         * and configure GitHub credentials there using:
-         * github-credentials
+         * Therefore we explicitly checkout the GitHub repository.
          */
         stage('Checkout') {
+
             steps {
-                checkout scm
+
+                git(
+                    branch: 'main',
+                    credentialsId: 'github-credentials',
+                    url: 'https://github.com/java2786/swiftkart-ai-assistant-project-1'
+                )
             }
         }
 
+
+        /*
+         * ============================================================
+         * 2. BUILD DOCKER IMAGE
+         * ============================================================
+         */
         stage('Build Docker Image') {
             steps {
-
                 sh '''
                     set -e
 
-                    echo "Building Docker image..."
+                    echo "Building Docker image for linux/amd64..."
 
                     docker build \
+                        --platform linux/amd64 \
                         -t "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}" \
                         .
 
@@ -65,28 +77,46 @@ pipeline {
             }
         }
 
+        stage('Verify Image Architecture') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "Checking image architecture..."
+
+                    docker image inspect \
+                        "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}" \
+                        --format='Architecture={{.Architecture}} OS={{.Os}}'
+                '''
+            }
+        }
+        /*
+         * ============================================================
+         * 3. PUSH IMAGE TO AMAZON ECR
+         * ============================================================
+         *
+         * Jenkins uses its own AWS IAM credentials here.
+         *
+         * Jenkins credential:
+         *     aws-jenkins
+         */
         stage('Push Image to ECR') {
+
             steps {
 
-                /*
-                 * AWS credentials are stored in Jenkins.
-                 *
-                 * Jenkins temporarily exposes them as:
-                 *
-                 * AWS_ACCESS_KEY_ID
-                 * AWS_SECRET_ACCESS_KEY
-                 *
-                 * Actual values are NEVER written in this Jenkinsfile.
-                 */
                 withCredentials([
-                    [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-jenkins']
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-jenkins'
+                    ]
                 ]) {
 
                     sh '''
                         set -e
 
-                        echo "Logging into Amazon ECR..."
+                        echo "=========================================="
+                        echo "Logging into Amazon ECR"
+                        echo "=========================================="
 
                         aws ecr get-login-password \
                             --region "${AWS_REGION}" \
@@ -94,29 +124,47 @@ pipeline {
                             --username AWS \
                             --password-stdin "${ECR_REGISTRY}"
 
-                        echo "Pushing Docker image to ECR..."
+                        echo ""
+                        echo "ECR login successful."
+
+                        echo ""
+                        echo "Pushing Docker image..."
 
                         docker push \
                             "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 
-                        echo "Image pushed successfully."
+                        echo ""
+                        echo "=========================================="
+                        echo "Image pushed successfully"
+                        echo "=========================================="
 
-                        echo "Image:"
                         echo "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
                     '''
                 }
             }
         }
 
+
+        /*
+         * ============================================================
+         * 4. DEPLOY TO EC2
+         * ============================================================
+         *
+         * Jenkins only SSHs into EC2.
+         *
+         * IMPORTANT:
+         * Jenkins does NOT receive the OpenAI/Tavily keys.
+         *
+         * EC2 obtains those values from AWS Secrets Manager using
+         * its IAM role.
+         *
+         * Jenkins credential:
+         *     ec2-ssh-key
+         */
         stage('Deploy to EC2') {
+
             steps {
 
-                /*
-                 * EC2 SSH private key is stored in Jenkins.
-                 *
-                 * Jenkins temporarily creates the key file represented
-                 * by ${SSH_KEY}.
-                 */
                 withCredentials([
                     sshUserPrivateKey(
                         credentialsId: 'ec2-ssh-key',
@@ -128,7 +176,190 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Deploying to EC2: ${EC2_HOST}"
+                        echo "=========================================="
+                        echo "Deploying to EC2"
+                        echo "=========================================="
+
+                        echo "EC2 host : ${EC2_HOST}"
+                        echo "Image    : ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
+
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            -i "${SSH_KEY}" \
+                            "${SSH_USER}@${EC2_HOST}" \
+                            "AWS_REGION='${AWS_REGION}' \
+                             ECR_REGISTRY='${ECR_REGISTRY}' \
+                             ECR_REPO='${ECR_REPO}' \
+                             IMAGE_TAG='${IMAGE_TAG}' \
+                             SECRET_NAME='${SECRET_NAME}' \
+                             APP_NAME='${APP_NAME}' \
+                             bash -s" <<'REMOTE_SCRIPT'
+
+set -e
+
+echo "=========================================="
+echo "EC2 deployment started"
+echo "=========================================="
+
+
+# ------------------------------------------------------------
+# 1. Login to ECR
+# ------------------------------------------------------------
+
+echo ""
+echo "Logging into Amazon ECR..."
+
+aws ecr get-login-password \
+    --region "${AWS_REGION}" \
+| docker login \
+    --username AWS \
+    --password-stdin "${ECR_REGISTRY}"
+
+echo "ECR login successful."
+
+
+# ------------------------------------------------------------
+# 2. Pull Docker image
+# ------------------------------------------------------------
+
+echo ""
+echo "Pulling Docker image..."
+
+docker pull \
+    "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
+
+echo "Docker image pulled successfully."
+
+
+# ------------------------------------------------------------
+# 3. Read secrets from AWS Secrets Manager
+# ------------------------------------------------------------
+
+echo ""
+echo "Reading application secrets from AWS Secrets Manager..."
+
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id "${SECRET_NAME}" \
+    --region "${AWS_REGION}" \
+    --query SecretString \
+    --output text)
+
+
+# Extract OpenAI API key
+OPENAI_KEY=$(echo "${SECRET_JSON}" | jq -r '.OPENAI_API_KEY // empty')
+
+# Extract Tavily API key
+TAVILY_KEY=$(echo "${SECRET_JSON}" | jq -r '.TAVILY_API_KEY // empty')
+
+
+# ------------------------------------------------------------
+# 4. Validate required secret
+# ------------------------------------------------------------
+
+if [ -z "${OPENAI_KEY}" ]; then
+
+    echo "ERROR: OPENAI_API_KEY was not found in Secrets Manager."
+
+    exit 1
+fi
+
+
+if [ -z "${TAVILY_KEY}" ]; then
+
+    echo "WARNING: TAVILY_API_KEY was not found."
+
+    echo "The application will run without Tavily web search."
+fi
+
+
+echo "Application secrets retrieved successfully."
+
+
+# ------------------------------------------------------------
+# 5. Stop existing container
+# ------------------------------------------------------------
+
+echo ""
+echo "Stopping existing container..."
+
+docker stop "${APP_NAME}" || true
+
+
+# ------------------------------------------------------------
+# 6. Remove existing container
+# ------------------------------------------------------------
+
+echo ""
+echo "Removing existing container..."
+
+docker rm "${APP_NAME}" || true
+
+
+# ------------------------------------------------------------
+# 7. Start new container
+# ------------------------------------------------------------
+
+echo ""
+echo "Starting new container..."
+
+docker run -d \
+    --name "${APP_NAME}" \
+    --restart unless-stopped \
+    -p 8080:8080 \
+    -e OPENAI_API_KEY="${OPENAI_KEY}" \
+    -e TAVILY_API_KEY="${TAVILY_KEY}" \
+    "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
+
+
+# ------------------------------------------------------------
+# 8. Verify container
+# ------------------------------------------------------------
+
+echo ""
+echo "Container started."
+
+echo ""
+echo "Running container status..."
+
+docker ps \
+    --filter "name=${APP_NAME}"
+
+
+echo ""
+echo "=========================================="
+echo "EC2 deployment completed"
+echo "=========================================="
+
+REMOTE_SCRIPT
+                    '''
+                }
+            }
+        }
+
+
+        /*
+         * ============================================================
+         * 5. HEALTH CHECK
+         * ============================================================
+         */
+        stage('Health Check') {
+
+            steps {
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'ec2-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+
+                    sh '''
+                        set -e
+
+                        echo "=========================================="
+                        echo "Running application health check on EC2"
+                        echo "=========================================="
 
                         ssh \
                             -o StrictHostKeyChecking=no \
@@ -137,109 +368,39 @@ pipeline {
                             "
                                 set -e
 
-                                AWS_REGION='${AWS_REGION}'
-                                ECR_REGISTRY='${ECR_REGISTRY}'
-                                ECR_REPO='${ECR_REPO}'
-                                IMAGE_TAG='${IMAGE_TAG}'
-                                SECRET_NAME='${SECRET_NAME}'
-                                APP_NAME='${APP_NAME}'
+                                echo 'Waiting for application to start...'
+                                sleep 15
 
-                                echo 'Logging into ECR...'
+                                echo 'Checking application health...'
 
-                                aws ecr get-login-password \
-                                    --region \${AWS_REGION} \
-                                | docker login \
-                                    --username AWS \
-                                    --password-stdin \${ECR_REGISTRY}
+                                curl --fail \
+                                    http://localhost:8080/actuator/health
 
-                                echo 'Pulling Docker image...'
-
-                                docker pull \
-                                    \${ECR_REGISTRY}/\${ECR_REPO}:\${IMAGE_TAG}
-
-                                echo 'Reading application secrets from AWS Secrets Manager...'
-
-                                SECRET_JSON=\$(aws secretsmanager get-secret-value \
-                                    --secret-id \${SECRET_NAME} \
-                                    --region \${AWS_REGION} \
-                                    --query SecretString \
-                                    --output text)
-
-                                OPENAI_KEY=\$(echo \"\$SECRET_JSON\" | jq -r '.OPENAI_API_KEY')
-                                TAVILY_KEY=\$(echo \"\$SECRET_JSON\" | jq -r '.TAVILY_API_KEY')
-
-                                if [ -z \"\$OPENAI_KEY\" ] || [ \"\$OPENAI_KEY\" = \"null\" ]; then
-                                    echo 'ERROR: OPENAI_API_KEY not found in Secrets Manager.'
-                                    exit 1
-                                fi
-
-                                if [ -z \"\$TAVILY_KEY\" ] || [ \"\$TAVILY_KEY\" = \"null\" ]; then
-                                    echo 'WARNING: TAVILY_API_KEY not found in Secrets Manager.'
-                                fi
-
-                                echo 'Application secrets retrieved successfully.'
-
-                                echo 'Stopping old container...'
-
-                                docker stop \${APP_NAME} || true
-
-                                echo 'Removing old container...'
-
-                                docker rm \${APP_NAME} || true
-
-                                echo 'Starting new container...'
-
-                                docker run -d \
-                                    --name \${APP_NAME} \
-                                    --restart unless-stopped \
-                                    -p 8080:8080 \
-                                    -e OPENAI_API_KEY=\"\${OPENAI_KEY}\" \
-                                    -e TAVILY_API_KEY=\"\${TAVILY_KEY}\" \
-                                    \${ECR_REGISTRY}/\${ECR_REPO}:\${IMAGE_TAG}
-
-                                echo 'Container started.'
-
-                                echo 'Running container status:'
-
-                                docker ps \
-                                    --filter name=\${APP_NAME}
-
-                                echo 'Deployment completed successfully.'
+                                echo ''
+                                echo '=========================================='
+                                echo 'Health check passed'
+                                echo '=========================================='
                             "
                     '''
                 }
             }
         }
 
-        stage('Health Check') {
-            steps {
 
-                sh '''
-                    set -e
-
-                    echo "Waiting for application to start..."
-
-                    sleep 15
-
-                    echo "Checking application health..."
-
-                    curl --fail \
-                        "http://${EC2_HOST}:8080/actuator/health"
-
-                    echo ""
-                    echo "Health check passed."
-                '''
-            }
-        }
-    }
-
+    /*
+     * ================================================================
+     * POST BUILD
+     * ================================================================
+     */
     post {
 
         success {
+
             echo 'SwiftKart deployment completed successfully.'
         }
 
         failure {
+
             echo 'SwiftKart deployment failed.'
         }
     }
