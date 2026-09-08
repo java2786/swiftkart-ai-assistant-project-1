@@ -19,9 +19,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarServer') {
-                    sh '''
-                        ./mvnw -B sonar:sonar  -Dsonar.host.url=http://sonarqube:9000
-                    '''
+                    dir('api-gateway') {
+                        sh '''
+                            ./mvnw -B sonar:sonar  -Dsonar.host.url=http://sonarqube:9000
+                        '''
+                    }
                 }
             }
         }
