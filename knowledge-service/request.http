@@ -1,0 +1,24 @@
+@host = http://localhost:8082
+
+### Health check
+GET {{host}}/api/knowledge/health
+
+### Chroma: ingest a document
+POST {{host}}/api/knowledge/chroma/documents
+Content-Type: application/json
+
+{
+  "content": "Apple iPhone 15 with a titanium frame and 256GB storage"
+}
+
+### Chroma: semantic search
+GET {{host}}/api/knowledge/chroma/search?query=headphones
+
+### Tool chaining demo
+GET {{host}}/api/knowledge/tools/chain?product=iphone
+
+### Swagger UI
+GET {{host}}/swagger-ui.html
+
+### OpenAPI schema
+GET {{host}}/v3/api-docs

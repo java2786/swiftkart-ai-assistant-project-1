@@ -1,0 +1,22 @@
+server:
+  port: ${PORT:9090}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: swiftkart-service
+          uri: ${SWIFTKART_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/agent/**
+          # filters:
+            # Rewrites /api/swiftkart/api/agent/chat -> /api/agent/chat
+            # - RewritePath=/api/swiftkart/(?<segment>.*), /$\{segment}
+            # POST http://localhost:9090/api/swiftkart/api/agent/chat
+
+        - id: knowledge-service
+          uri: ${KNOWLEDGE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/knowledge/**

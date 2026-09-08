@@ -1,56 +1,75 @@
-HELP.md
-.env.dev
+# -----------------------------------------------------------------------------
+# Java / Maven build artifacts
+# -----------------------------------------------------------------------------
+**/target/
+**/target/**
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+**/*.zip
+
+# -----------------------------------------------------------------------------
+# Environment and secret files
+# -----------------------------------------------------------------------------
 .env
-.env.openai.dev
-.env*
-!.env.example
+.env.*
+**/.env
+**/.env.*
+**/credentials.json
+**/secrets.*
 
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-http/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# -----------------------------------------------------------------------------
+# IDE / editor configuration
+# -----------------------------------------------------------------------------
+.idea/
+**/.idea/
 .vscode/
+**/.vscode/
+*.iml
+**/*.iml
+*.suo
+*.user
+.classpath
+.project
+.settings/
+**/.settings/
 
-mvnw.cmd
-data
-
-test.txt
+# -----------------------------------------------------------------------------
+# Operating system files
+# -----------------------------------------------------------------------------
 .DS_Store
-*.pem
-volume_data/
-src/.DS_Store
-src/main/.DS_Store
 **/.DS_Store
-kbd/
+Thumbs.db
+**/Thumbs.db
 
-# Mac macOS metadata files
-.DS_Store
-**/.DS_Store
+# -----------------------------------------------------------------------------
+# Logs and temporary files
+# -----------------------------------------------------------------------------
+*.log
+**/*.log
+logs/
+**/logs/
+*.tmp
+**/*.tmp
+*.pid
+**/*.pid
+
+# -----------------------------------------------------------------------------
+# Local database / data volumes
+# -----------------------------------------------------------------------------
+chroma_data/
+**/chroma_data/
+postgres_data/
+**/postgres_data/
+data/
+**/data/
+/data/
+/volume_data/
+**/volume_data/
+
+# -----------------------------------------------------------------------------
+# Optional: keep local tool/generated caches out of git
+# -----------------------------------------------------------------------------
+**/.cache/
+**/.tmp/

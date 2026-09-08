@@ -1,0 +1,14 @@
+# swiftkart-ai-assistant-14/
+POST http://localhost:9090/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "customer-mahesh",
+  "conversationId": "conv-return-policy-q1",
+  "message": "I'm Liam Chen from Singapore. My order SK-1002 hasn't arrived yet. Can you check its status and tell me if it's covered under the delay policy?"
+}
+
+###
+
+# knowledge-service/
+GET http://localhost:9090/api/knowledge/health
