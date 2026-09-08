@@ -661,25 +661,21 @@ Use a different SonarQube project key for each service.
 
 # 18. Standard Jenkinsfile
 
-Use this Jenkinsfile in each independent Maven project:
+Use this Jenkinsfile in each independent Maven project:  
 
+`swiftkart-ai-assistant/Jenkinsfile`:  
 ```groovy
 pipeline {
-
     agent any
-
     tools {
         jdk 'JDK-21'
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-
         stage('Build & Test') {
             steps {
                 dir('swiftkart-ai-assistant') {
@@ -687,19 +683,17 @@ pipeline {
                 }
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarServer') {
                     dir('swiftkart-ai-assistant') {
                         sh '''
-                            ./mvnw -B sonar:sonar -Dsonar.host.url=http://sonarqube:9000
+                            ./mvnw -B sonar:sonar  -Dsonar.host.url=http://sonarqube:9000
                         '''
                     }
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -709,6 +703,74 @@ pipeline {
         }
     }
 }
+```
+
+`knowledge-service/Jenkinsfile`:  
+```groovy
+pipeline {
+    agent any
+    tools {
+        jdk 'JDK-21'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build & Test') {
+            steps {
+                dir('knowledge-service') {
+                   sh './mvnw -B clean verify'
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarServer') {
+                    dir('knowledge-service') {
+                        sh '''
+                            ./mvnw -B sonar:sonar  -Dsonar.host.url=http://sonarqube:9000
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+}
+
+```
+
+`api-gateway/Jenkinsfile`:  
+```groovy
+pipeline {
+    agent any
+    tools {
+        jdk 'JDK-21'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build & Test') {
+            steps {
+                dir('api-gateway') {
+                   sh './mvnw -B clean verify'
+                }
+            }
+        }
+    }
+}
+
 ```
 
 If a project does not contain `mvnw`, replace `./mvnw` with `mvn`.
