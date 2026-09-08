@@ -22,12 +22,12 @@ services:
     ports:
       - "8082:8082"
     env_file:
-          - ./knowledge-service/.env      
+      - ./knowledge-service/.env
     environment:
       - PORT=8082
-    #   - CHROMA_HOST=http://chromadb
-    #   - CHROMA_PORT=8000
-      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CHROMA_HOST=http://chromadb
+      - CHROMA_PORT=8000
+      - SPRING_AI_VECTORSTORE_CHROMA_INITIALIZE_SCHEMA=true
     depends_on:
       - chromadb
     networks:
@@ -44,10 +44,10 @@ services:
       - "8080:8080"
     env_file:
       - ./swiftkart-ai-assistant/.env
-    # environment:
-    #   - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
-      - swiftkart-net
+      swiftkart-net:
+        aliases:
+          - swiftkart-ai-assistant
 
   api-gateway:
     build:
@@ -56,8 +56,8 @@ services:
     container_name: swiftkart-api-gateway
     ports:
       - "9090:9090"
-    # env_file:
-    #       - ./api-gateway/.env
+    env_file:
+      - ./api-gateway/.env
     environment:
       - PORT=9090
       - SWIFTKART_URL=http://swiftkart-ai-assistant:8080
@@ -66,9 +66,7 @@ services:
       - swiftkart-ai-assistant
       - knowledge-service
     networks:
-      swiftkart-net:
-        aliases:
-          - swiftkart-ai-assistant
+      - swiftkart-net
 
 networks:
   swiftkart-net:
@@ -76,3 +74,4 @@ networks:
 
 volumes:
   chroma_data:
+

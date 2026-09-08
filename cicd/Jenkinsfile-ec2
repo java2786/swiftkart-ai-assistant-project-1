@@ -21,7 +21,7 @@ pipeline {
         ECR_REGISTRY =
             "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-        EC2_HOST = '13.235.90.243'
+        EC2_HOST = '${PUBLIC_IP}'
 
         APP_NAME = 'swiftkart-app'
 

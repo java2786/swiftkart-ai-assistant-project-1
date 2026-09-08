@@ -864,7 +864,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
     --query "Instances[0].InstanceId" \
     --output text)
 
-echo "EC2 Instance: ${INSTANCE_ID}"
+echo "EC2 Instance: ${INSTANCE_ID}" 
 ```
 
 Wait:
