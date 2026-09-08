@@ -68,4 +68,9 @@ Dockerfile*
 chroma_data/
 postgres_data/
 volume_data/
+data/
+**/data/
 /data/
+kbd/
+**/kbd/
+/kbd/

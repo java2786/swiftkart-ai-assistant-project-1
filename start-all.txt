@@ -1,0 +1,39 @@
+docker run -d \
+  --name swiftkart-chromadb-knowledge-2 \
+  -p 8001:8000 \
+  -e IS_PERSISTENT=TRUE \
+  -e ANONYMIZED_TELEMETRY=FALSE \
+  -v chroma_knowledge_data:/chroma/chroma \
+  chromadb/chroma:0.4.24
+
+docker rm swiftkart-chromadb-knowledge-2
+docker start swiftkart-chromadb-knowledge-2
+docker stop swiftkart-chromadb-knowledge-2
+
+echo "Starting Knowledge Service (Port 8082)..."
+cd knowledge-service
+mvn clean spring-boot:run
+
+echo "Starting SwiftKart AI Assistant (Port 8080)..."
+cd swiftkart-ai-assistant
+mvn clean spring-boot:run
+
+echo "Starting API Gateway (Port 9090)..."
+cd api-gateway
+mvn clean spring-boot:run
+
+
+jenkins: 8081
+sonar: 9000
+
+
+Start ChromaDB using Docker Compose
+$ docker compose up -d chromadb
+
+Start all containers using Docker Compose
+$ docker compose -f docker-compose.yml up -d --build
+$ docker compose up -d 
+$ docker compose down
+
+
+docker compose logs -f api-gateway

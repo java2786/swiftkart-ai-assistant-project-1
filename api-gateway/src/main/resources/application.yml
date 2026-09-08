@@ -20,3 +20,4 @@ spring:
           uri: ${KNOWLEDGE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/knowledge/**
+

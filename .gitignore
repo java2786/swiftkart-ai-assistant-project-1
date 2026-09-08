@@ -65,6 +65,9 @@ postgres_data/
 data/
 **/data/
 /data/
+kbd/
+**/kbd/
+/kbd/
 /volume_data/
 **/volume_data/
 

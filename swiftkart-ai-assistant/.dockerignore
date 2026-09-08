@@ -18,3 +18,7 @@ target/
 .DS_Store
 *.pem
 volume_data/
+
+kbd/
+**/kbd/
+/kbd/
