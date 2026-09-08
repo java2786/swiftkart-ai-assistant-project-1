@@ -11,7 +11,9 @@ pipeline {
         }
         stage('Build & Test') {
             steps {
-                sh 'mvn -B clean verify'
+                dir('api-gateway') {
+                   sh './mvnw -B clean verify'
+                }
             }
         }
         stage('SonarQube Analysis') {

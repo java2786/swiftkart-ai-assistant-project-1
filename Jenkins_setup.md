@@ -682,7 +682,9 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                sh './mvnw -B clean verify'
+                dir('swiftkart-ai-assistant') {
+                   sh './mvnw -B clean verify'
+                }
             }
         }
 
