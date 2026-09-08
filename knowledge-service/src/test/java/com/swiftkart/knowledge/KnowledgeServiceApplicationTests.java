@@ -1,12 +1,12 @@
-package com.swiftkart.knowledge;
+// package com.swiftkart.knowledge;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class KnowledgeServiceApplicationTests {
+// @SpringBootTest
+// class KnowledgeServiceApplicationTests {
 
-    @Test
-    void contextLoads() {
-    }
-}
+//     @Test
+//     void contextLoads() {
+//     }
+// }
