@@ -759,7 +759,7 @@ Branch:
 Script Path:
 
 ```text
-Jenkinsfile
+swiftkart-ai-assistant/Jenkinsfile
 ```
 
 Save.
@@ -814,7 +814,7 @@ Build Now
 Expected SonarQube project:
 
 ```text
-swiftkart-knowledge-service
+knowledge-service/Jenkinsfile
 ```
 
 ---
@@ -843,7 +843,7 @@ api-gateway/
 Expected SonarQube project:
 
 ```text
-swiftkart-api-gateway
+api-gateway/Jenkinsfile
 ```
 
 ---
