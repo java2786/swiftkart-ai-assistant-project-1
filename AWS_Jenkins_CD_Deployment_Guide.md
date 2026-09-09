@@ -976,14 +976,13 @@ Enter the `AccessKeyId` and `SecretAccessKey` created for `swiftkart-jenkins`.
 
 Create:
 
-```text
+```plaintext
 Kind: SSH Username with private key
-ID: ec2-ssh-key
 Username: ec2-user
-Description: EC2 ssh with jenkins
+ID: ec2-ssh-key
+Description: EC2 SSH private key for SwiftKart CD
+Private Key: Enter directly, Paste the contents of: pem
 ```
-
-Paste the contents of:
 
 ```bash
 cat ./swiftkart-key-cd.pem
@@ -1037,6 +1036,7 @@ It calculates the AWS account ID from the Jenkins AWS credential.
 
 ```groovy
 pipeline {
+
     agent any
 
     parameters {
@@ -1049,16 +1049,23 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-south-1'
+        AWS_ACCOUNT_ID = '683613034915'
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
         ECR_SWIFTKART_REPO = 'swiftkart-ai-assistant-cd'
         ECR_KNOWLEDGE_REPO = 'knowledge-service-cd'
         ECR_GATEWAY_REPO = 'api-gateway-cd'
+
         SECRET_NAME = 'swiftkart/prod/env/cd'
+
         EC2_NAME = 'swiftkart-microservices-prod-cd'
         EC2_USER = 'ec2-user'
+
         DEPLOY_DIR = '/opt/swiftkart'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -1073,6 +1080,20 @@ pipeline {
                     env.IMAGE_TAG = params.IMAGE_TAG?.trim()
                         ? params.IMAGE_TAG.trim()
                         : "${env.BUILD_NUMBER}"
+
+                    env.SWIFTKART_IMAGE =
+                        "${env.ECR_REGISTRY}/${env.ECR_SWIFTKART_REPO}:${env.IMAGE_TAG}"
+
+                    env.KNOWLEDGE_IMAGE =
+                        "${env.ECR_REGISTRY}/${env.ECR_KNOWLEDGE_REPO}:${env.IMAGE_TAG}"
+
+                    env.GATEWAY_IMAGE =
+                        "${env.ECR_REGISTRY}/${env.ECR_GATEWAY_REPO}:${env.IMAGE_TAG}"
+
+                    echo "IMAGE_TAG=${env.IMAGE_TAG}"
+                    echo "SWIFTKART_IMAGE=${env.SWIFTKART_IMAGE}"
+                    echo "KNOWLEDGE_IMAGE=${env.KNOWLEDGE_IMAGE}"
+                    echo "GATEWAY_IMAGE=${env.GATEWAY_IMAGE}"
                 }
             }
         }
@@ -1086,21 +1107,54 @@ pipeline {
                     sh '''
                         set -e
 
+                        echo "Checking Docker environment..."
+                        uname -m
+                        docker version
+                        docker buildx version
+
                         export AWS_DEFAULT_REGION="${AWS_REGION}"
-                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity \
+                            --query Account \
+                            --output text)"
                         export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-                        docker build --platform linux/amd64 \
-                          -t "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}" \
-                          ./swiftkart-ai-assistant
+                        echo "AWS Account: ${AWS_ACCOUNT_ID}"
+                        echo "ECR Registry: ${ECR_REGISTRY}"
+                        echo "Image Tag: ${IMAGE_TAG}"
 
-                        docker build --platform linux/amd64 \
-                          -t "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}" \
-                          ./knowledge-service
+                        echo "Building SwiftKart AI Assistant..."
+                        docker buildx build \
+                            --platform linux/amd64 \
+                            --load \
+                            -t "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}" \
+                            ./swiftkart-ai-assistant
 
-                        docker build --platform linux/amd64 \
-                          -t "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}" \
-                          ./api-gateway
+                        echo "Building Knowledge Service..."
+                        docker buildx build \
+                            --platform linux/amd64 \
+                            --load \
+                            -t "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}" \
+                            ./knowledge-service
+
+                        echo "Building API Gateway..."
+                        docker buildx build \
+                            --platform linux/amd64 \
+                            --load \
+                            -t "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}" \
+                            ./api-gateway
+
+                        echo "Verifying image platforms..."
+                        docker image inspect \
+                            "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}" \
+                            --format '{{.Os}}/{{.Architecture}}'
+
+                        docker image inspect \
+                            "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}" \
+                            --format '{{.Os}}/{{.Architecture}}'
+
+                        docker image inspect \
+                            "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}" \
+                            --format '{{.Os}}/{{.Architecture}}'
                     '''
                 }
             }
@@ -1116,15 +1170,31 @@ pipeline {
                         set -e
 
                         export AWS_DEFAULT_REGION="${AWS_REGION}"
-                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity \
+                            --query Account \
+                            --output text)"
                         export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-                        aws ecr get-login-password --region "${AWS_REGION}" |
-                          docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                        echo "Logging into Amazon ECR..."
+                        aws ecr get-login-password \
+                            --region "${AWS_REGION}" |
+                        docker login \
+                            --username AWS \
+                            --password-stdin "${ECR_REGISTRY}"
 
-                        docker push "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
-                        docker push "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
-                        docker push "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
+                        echo "Pushing SwiftKart AI Assistant..."
+                        docker push \
+                            "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
+
+                        echo "Pushing Knowledge Service..."
+                        docker push \
+                            "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
+
+                        echo "Pushing API Gateway..."
+                        docker push \
+                            "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
+
+                        echo "All images pushed successfully."
                     '''
                 }
             }
@@ -1146,69 +1216,123 @@ pipeline {
 
                         export AWS_DEFAULT_REGION="${AWS_REGION}"
 
+                        echo "Finding EC2 instance..."
                         export EC2_HOST="$(aws ec2 describe-instances \
-                          --filters \
-                            "Name=tag:Name,Values=${EC2_NAME}" \
-                            "Name=instance-state-name,Values=running" \
-                          --query 'Reservations[0].Instances[0].PublicIpAddress' \
-                          --output text \
-                          --region "${AWS_REGION}")"
+                            --filters \
+                                "Name=tag:Name,Values=${EC2_NAME}" \
+                                "Name=instance-state-name,Values=running" \
+                            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+                            --output text \
+                            --region "${AWS_REGION}")"
 
                         test -n "${EC2_HOST}"
                         test "${EC2_HOST}" != "None"
 
-                        scp -o StrictHostKeyChecking=no \
-                          -i "${SSH_KEY}" \
-                          docker-compose-prod.yml \
-                          "${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/docker-compose-prod.yml"
+                        echo "EC2 Host: ${EC2_HOST}"
 
-                        ssh -o StrictHostKeyChecking=no \
-                          -i "${SSH_KEY}" \
-                          "${SSH_USER}@${EC2_HOST}" \
-                          "AWS_REGION='${AWS_REGION}' \
-                           ECR_SWIFTKART_REPO='${ECR_SWIFTKART_REPO}' \
-                           ECR_KNOWLEDGE_REPO='${ECR_KNOWLEDGE_REPO}' \
-                           ECR_GATEWAY_REPO='${ECR_GATEWAY_REPO}' \
-                           SECRET_NAME='${SECRET_NAME}' \
-                           IMAGE_TAG='${IMAGE_TAG}' \
-                           DEPLOY_DIR='${DEPLOY_DIR}' \
-                           bash -s" <<'REMOTE_SCRIPT'
+                        echo "Copying production Compose file..."
+                        scp \
+                            -o StrictHostKeyChecking=no \
+                            -i "${SSH_KEY}" \
+                            docker-compose-prod.yml \
+                            "${SSH_USER}@${EC2_HOST}:${DEPLOY_DIR}/docker-compose-prod.yml"
+
+                        echo "Starting remote deployment..."
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            -i "${SSH_KEY}" \
+                            "${SSH_USER}@${EC2_HOST}" \
+                            "AWS_REGION='${AWS_REGION}' \
+                             ECR_SWIFTKART_REPO='${ECR_SWIFTKART_REPO}' \
+                             ECR_KNOWLEDGE_REPO='${ECR_KNOWLEDGE_REPO}' \
+                             ECR_GATEWAY_REPO='${ECR_GATEWAY_REPO}' \
+                             SECRET_NAME='${SECRET_NAME}' \
+                             IMAGE_TAG='${IMAGE_TAG}' \
+                             DEPLOY_DIR='${DEPLOY_DIR}' \
+                             bash -s" <<'REMOTE_SCRIPT'
 
                         set -e
 
-                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                        echo "Checking EC2 Docker environment..."
+                        docker --version
+                        docker compose version
+
+                        echo "Getting AWS account..."
+                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity \
+                            --query Account \
+                            --output text)"
                         export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-                        aws ecr get-login-password --region "${AWS_REGION}" |
-                          docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                        echo "ECR Registry: ${ECR_REGISTRY}"
+                        echo "Image Tag: ${IMAGE_TAG}"
 
-                        docker pull "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
-                        docker pull "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
-                        docker pull "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
+                        echo "Logging into Amazon ECR..."
+                        aws ecr get-login-password \
+                            --region "${AWS_REGION}" |
+                        docker login \
+                            --username AWS \
+                            --password-stdin "${ECR_REGISTRY}"
 
-                        mkdir -p "${DEPLOY_DIR}"
-                        cd "${DEPLOY_DIR}"
+                        echo "Pulling SwiftKart image..."
+                        docker pull \
+                            "${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
 
-                        export REPO_ASSISTANT="${ECR_SWIFTKART_REPO}"
-                        export REPO_KNOWLEDGE="${ECR_KNOWLEDGE_REPO}"
-                        export REPO_GATEWAY="${ECR_GATEWAY_REPO}"
+                        echo "Pulling Knowledge Service image..."
+                        docker pull \
+                            "${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
 
+                        echo "Pulling API Gateway image..."
+                        docker pull \
+                            "${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
+
+                        echo "Reading application secrets..."
                         umask 077
                         aws secretsmanager get-secret-value \
-                          --secret-id "${SECRET_NAME}" \
-                          --query SecretString \
-                          --output text > /tmp/swiftkart-runtime-secret.json
+                            --secret-id "${SECRET_NAME}" \
+                            --region "${AWS_REGION}" \
+                            --query SecretString \
+                            --output text \
+                            > /tmp/swiftkart-runtime-secret.json
 
-                        export OPENAI_KEY="$(jq -r '.OPENAI_API_KEY' /tmp/swiftkart-runtime-secret.json)"
-                        export TAVILY_KEY="$(jq -r '.TAVILY_API_KEY' /tmp/swiftkart-runtime-secret.json)"
+                        export OPENAI_API_KEY="$(jq -r \
+                            '.OPENAI_API_KEY' \
+                            /tmp/swiftkart-runtime-secret.json)"
+
+                        export TAVILY_API_KEY="$(jq -r \
+                            '.TAVILY_API_KEY' \
+                            /tmp/swiftkart-runtime-secret.json)"
+
                         rm -f /tmp/swiftkart-runtime-secret.json
 
-                        docker compose -f docker-compose-prod.yml config
-                        docker compose -f docker-compose-prod.yml up -d --remove-orphans
-                        docker compose -f docker-compose-prod.yml ps
+                        test -n "${OPENAI_API_KEY}"
+                        test -n "${TAVILY_API_KEY}"
 
-                        unset OPENAI_KEY TAVILY_KEY
+                        export SWIFTKART_IMAGE="${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
+                        export KNOWLEDGE_IMAGE="${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
+                        export GATEWAY_IMAGE="${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
 
+                        cd "${DEPLOY_DIR}"
+
+                        echo "Validating Docker Compose configuration..."
+                        docker compose \
+                            -f docker-compose-prod.yml \
+                            config
+
+                        echo "Starting production services..."
+                        docker compose \
+                            -f docker-compose-prod.yml \
+                            up -d \
+                            --remove-orphans
+
+                        echo "Current container status..."
+                        docker compose \
+                            -f docker-compose-prod.yml \
+                            ps
+
+                        unset OPENAI_API_KEY
+                        unset TAVILY_API_KEY
+
+                        echo "EC2 deployment completed."
 REMOTE_SCRIPT
                     '''
                 }
@@ -1232,44 +1356,96 @@ REMOTE_SCRIPT
                         export AWS_DEFAULT_REGION="${AWS_REGION}"
 
                         export EC2_HOST="$(aws ec2 describe-instances \
-                          --filters \
-                            "Name=tag:Name,Values=${EC2_NAME}" \
-                            "Name=instance-state-name,Values=running" \
-                          --query 'Reservations[0].Instances[0].PublicIpAddress' \
-                          --output text \
-                          --region "${AWS_REGION}")"
+                            --filters \
+                                "Name=tag:Name,Values=${EC2_NAME}" \
+                                "Name=instance-state-name,Values=running" \
+                            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+                            --output text \
+                            --region "${AWS_REGION}")"
 
-                        ssh -o StrictHostKeyChecking=no \
-                          -i "${SSH_KEY}" \
-                          "${SSH_USER}@${EC2_HOST}" \
-                          'bash -s' <<'REMOTE_HEALTH'
+                        test -n "${EC2_HOST}"
+                        test "${EC2_HOST}" != "None"
+
+                        echo "Running health checks on ${EC2_HOST}..."
+
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            -i "${SSH_KEY}" \
+                            "${SSH_USER}@${EC2_HOST}" \
+                            "AWS_REGION='${AWS_REGION}' \
+                             ECR_SWIFTKART_REPO='${ECR_SWIFTKART_REPO}' \
+                             ECR_KNOWLEDGE_REPO='${ECR_KNOWLEDGE_REPO}' \
+                             ECR_GATEWAY_REPO='${ECR_GATEWAY_REPO}' \
+                             IMAGE_TAG='${IMAGE_TAG}' \
+                             DEPLOY_DIR='${DEPLOY_DIR}' \
+                             bash -s" <<'REMOTE_HEALTH'
 
                         set -e
 
-                        for i in $(seq 1 12); do
-                            if curl --fail --silent --show-error \
-                              http://localhost:9090/actuator/health; then
+                        export AWS_ACCOUNT_ID="$(aws sts get-caller-identity \
+                            --query Account \
+                            --output text)"
 
+                        export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+                        export SWIFTKART_IMAGE="${ECR_REGISTRY}/${ECR_SWIFTKART_REPO}:${IMAGE_TAG}"
+                        export KNOWLEDGE_IMAGE="${ECR_REGISTRY}/${ECR_KNOWLEDGE_REPO}:${IMAGE_TAG}"
+                        export GATEWAY_IMAGE="${ECR_REGISTRY}/${ECR_GATEWAY_REPO}:${IMAGE_TAG}"
+
+                        cd "${DEPLOY_DIR}"
+
+                        echo "SWIFTKART_IMAGE=${SWIFTKART_IMAGE}"
+                        echo "KNOWLEDGE_IMAGE=${KNOWLEDGE_IMAGE}"
+                        echo "GATEWAY_IMAGE=${GATEWAY_IMAGE}"
+
+                        for i in $(seq 1 12); do
+                            echo "Health check attempt ${i}/12..."
+
+                            if curl \
+                                --fail \
+                                --silent \
+                                --show-error \
+                                http://localhost:9090/actuator/health
+                            then
                                 echo
 
-                                if curl --fail --silent --show-error \
-                                  http://localhost:9090/api/knowledge/health; then
-
+                                if curl \
+                                    --fail \
+                                    --silent \
+                                    --show-error \
+                                    http://localhost:9090/api/knowledge/health
+                                then
                                     echo
                                     echo "Deployment health checks passed."
+
+                                    docker compose \
+                                        -f docker-compose-prod.yml \
+                                        ps
+
                                     exit 0
                                 fi
                             fi
 
-                            echo "Application not ready. Retrying in 5 seconds..."
+                            echo "Application not ready."
+                            echo "Retrying in 5 seconds..."
                             sleep 5
                         done
 
                         echo "Deployment health check failed."
-                        docker compose -f docker-compose-prod.yml -f /opt/swiftkart/docker-compose-prod.yml ps || true
-                        docker compose -f docker-compose-prod.yml -f /opt/swiftkart/docker-compose-prod.yml logs --tail=100 || true
-                        exit 1
+                        echo
+                        echo "Container status:"
+                        docker compose \
+                            -f docker-compose-prod.yml \
+                            ps || true
 
+                        echo
+                        echo "Container logs:"
+                        docker compose \
+                            -f docker-compose-prod.yml \
+                            logs \
+                            --tail=100 || true
+
+                        exit 1
 REMOTE_HEALTH
                     '''
                 }
@@ -1281,8 +1457,9 @@ REMOTE_HEALTH
         success {
             echo 'SwiftKart microservices CD deployment completed successfully.'
         }
+
         failure {
-            echo 'Deployment failed. Inspect Jenkins and EC2 Docker Compose logs.'
+            echo 'Deployment failed. Inspect Jenkins console output and EC2 Docker Compose logs.'
         }
     }
 }
