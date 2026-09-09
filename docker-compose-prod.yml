@@ -1,0 +1,13 @@
+services:
+
+  api-gateway:
+    image: ${GATEWAY_IMAGE}
+
+  swiftkart-ai-assistant:
+    image: ${SWIFTKART_IMAGE}
+
+  knowledge-service:
+    image: ${KNOWLEDGE_IMAGE}
+
+  chromadb:
+    image: chromadb/chroma:0.4.24
