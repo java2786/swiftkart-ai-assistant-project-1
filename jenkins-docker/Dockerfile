@@ -12,6 +12,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ARG DOCKER_VERSION=27.5.1
+ARG BUILDX_VERSION=0.36.1
 
 RUN curl -fsSL \
     "https://download.docker.com/linux/static/stable/aarch64/docker-${DOCKER_VERSION}.tgz" \
@@ -22,5 +23,12 @@ RUN curl -fsSL \
         docker/docker \
     && rm /tmp/docker.tgz \
     && docker --version
+
+RUN mkdir -p /usr/local/lib/docker/cli-plugins \
+    && curl -fsSL \
+        "https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-arm64" \
+        -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && docker buildx version
 
 USER jenkins
